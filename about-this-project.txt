@@ -1,0 +1,6 @@
+stickyNoye = {
+    id:'',
+    value:'',
+    positionX:'',
+    positionY:''
+}
