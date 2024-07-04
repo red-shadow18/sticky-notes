@@ -19,23 +19,37 @@ const Container = styled.div`
         border-radius:4px;
         width: 100%;
         height:100%;
+        position: relative;
     }
 
-    .individualStickyNote {
-        margin:5px;
+`
+
+const IndividualNote= styled.div`
+       margin:5px;
         padding:5px;
         border:.5px solid black;
         border-radius:4px;
         width: fit-content;
+        max-width: 200px;
+        max-height: 200px;
+        overflow: auto;
         display: flex;
         gap:5px;
+        user-select: none;
+        cursor: move;
+        background-color:lightyellow;
+        position: absolute;
+        left:${props=>props.posX}px;
+        top:${props=>props.posY}px;
 
         button {
             padding:5px;
+            background: transparent;
         }
-        
-    }
+    
 `
+const maxX=window.innerWidth-250;
+const maxY=window.innerHeight-250
 const StickyNotes=()=>{
     const [allStickyNotes, setAllStickyNotes]=useState([])
     const [focusedNote,setFocusedNote]=useState({id:null, value:'', newNote:true})
@@ -50,8 +64,8 @@ const StickyNotes=()=>{
         const newNoteContents={
             id:noteId,
             value:noteContent,
-            posX:'',
-            posY:''
+            posX:Math.floor(Math.random()*maxX),
+            posY:Math.floor(Math.random()*maxY)
         }
         if(newNote){
             modifiedStickyNotes.push(newNoteContents)
@@ -85,7 +99,7 @@ const StickyNotes=()=>{
         <AddUpdate newNote={focusedNote.newNote} noteId={focusedNote.id} noteValue={focusedNote.value} modifyStickyNotesList={modifyStickyNotesList}/>
         <div className="allNotes">
             {
-                allStickyNotes.map(note=><div className="individualStickyNote" key={note.id}><span>{note.value}</span><button data-id={note.id} onClick={editStickyNote}>/</button><button data-id={note.id} onClick={removeStickyNote}>X</button></div>)
+                allStickyNotes.map(note=><IndividualNote posX={note.posX} posY={note.posY} className="individualStickyNote" key={note.id}>📌<span>{note.value}</span><button data-id={note.id} onClick={editStickyNote}>/</button><button data-id={note.id} onClick={removeStickyNote}>X</button></IndividualNote>)
             }
         </div>
     </Container>

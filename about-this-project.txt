@@ -1,6 +1,6 @@
 stickyNoye = {
     id:'',
     value:'',
-    positionX:'',
-    positionY:''
+    posX:'',
+    posY:''
 }
