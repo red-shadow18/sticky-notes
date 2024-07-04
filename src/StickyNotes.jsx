@@ -1,8 +1,9 @@
-import React,{useState
+import React,{useEffect, useState
 
 } from "react";
 import styled from '@emotion/styled'
 import AddUpdate from "./Components/AddUpdate";
+import { getFromLocalStorage, saveToLocalStorage } from "./utils";
 
 const Container = styled.div`
     height:100vh;
@@ -39,6 +40,11 @@ const StickyNotes=()=>{
     const [allStickyNotes, setAllStickyNotes]=useState([])
     const [focusedNote,setFocusedNote]=useState({id:null, value:'', newNote:true})
 
+    useEffect(()=>{
+        const savedStickyNotes=getFromLocalStorage('stickyNotes') || []
+        setAllStickyNotes(savedStickyNotes)
+    },[])
+
     const modifyStickyNotesList =(newNote, noteId, noteContent)=>{
         let modifiedStickyNotes=[...allStickyNotes]
         const newNoteContents={
@@ -56,6 +62,7 @@ const StickyNotes=()=>{
         }
 
         setAllStickyNotes(modifiedStickyNotes)
+        saveToLocalStorage('stickyNotes', modifiedStickyNotes)
         setFocusedNote({id:null, value:'', newNote:true})
     }
 
@@ -64,6 +71,7 @@ const StickyNotes=()=>{
         const modifiedStickyNotes=[...allStickyNotes]
         const reqIndex=modifiedStickyNotes.findIndex(item=>item.id===noteId)
         modifiedStickyNotes.splice(reqIndex,1)
+        saveToLocalStorage('stickyNotes', modifiedStickyNotes)
         setAllStickyNotes(modifiedStickyNotes)
     }
 
