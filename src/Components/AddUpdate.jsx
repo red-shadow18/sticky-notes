@@ -11,7 +11,7 @@ input {
     
 `
 
-const AddUpdate=({newNote=true, noteId=null,noteValue='', modifyStickyNotesList})=>{
+const AddUpdate=({newNote=true, noteId=null,noteValue='', modifyStickyNotesList, posX=null, posY=null})=>{
     const [stickyNoteValue, setStickynoteValue]=useState('')
 
     useEffect(()=>{
@@ -25,7 +25,7 @@ const AddUpdate=({newNote=true, noteId=null,noteValue='', modifyStickyNotesList}
 
     const handleClick=()=>{
         const updatedNoteId= noteId || crypto.randomUUID()
-        modifyStickyNotesList(newNote,updatedNoteId,stickyNoteValue)
+        modifyStickyNotesList(newNote,updatedNoteId,stickyNoteValue,posX,posY)
         setStickynoteValue('')
     }
 
