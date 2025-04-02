@@ -2,6 +2,7 @@ import React, { createRef, useEffect, useRef, useState } from "react";
 import styled from "@emotion/styled";
 import AddUpdate from "./Components/AddUpdate";
 import { getFromLocalStorage, saveToLocalStorage } from "./utils";
+import {deleteStickyNote, getAllStickyNotes, saveStickyNote, updateStickyNote} from "./apiUtils/apicalls"
 
 const maxX = window.innerWidth - 250;
 const maxY = window.innerHeight - 250;
@@ -9,60 +10,56 @@ const StickyNotes = () => {
   const [allStickyNotes, setAllStickyNotes] = useState([]);
   const [focusedNote, setFocusedNote] = useState({
     id: null,
-    value: "",
+    stickyNoteContent: "",
     newNote: true,
     posX: null,
     posY: null,
   });
 
   useEffect(() => {
-    const savedStickyNotes = getFromLocalStorage("stickyNotes") || [];
-    setAllStickyNotes(savedStickyNotes);
+    getAllStickyNotes(saveStickyNotes)
   }, []);
+
+  const saveStickyNotes=(stickyNotes)=>{
+    setAllStickyNotes(stickyNotes);
+  }
 
   const stickyNotesRef = useRef({});
 
   const modifyStickyNotesList = (newNote, noteId, noteContent, posX, posY) => {
-    let modifiedStickyNotes = [...allStickyNotes];
     const newNoteContents = {
-      id: noteId,
-      value: noteContent,
+      stickyNoteContent: noteContent,
       posX: posX || Math.floor(Math.random() * maxX),
       posY: posY || Math.floor(Math.random() * maxY),
     };
     if (newNote) {
-      modifiedStickyNotes.push(newNoteContents);
+        saveStickyNote(newNoteContents, saveStickyNotes);
     } else {
-      const reqIndex = allStickyNotes.findIndex((item) => item.id === noteId);
-      if (reqIndex > -1) {
-        modifiedStickyNotes.splice(reqIndex, 1, newNoteContents);
-      }
+     
+  newNoteContents.id=noteId
+  updateStickyNote(noteId,newNoteContents,saveStickyNotes)
     }
 
-    setAllStickyNotes(modifiedStickyNotes);
-    saveToLocalStorage("stickyNotes", modifiedStickyNotes);
-    setFocusedNote({ id: null, value: "", newNote: true });
+   
+
+    setFocusedNote({ id: null, stickyNoteContent: "", newNote: true });
   };
 
   const removeStickyNote = (e) => {
     const noteId = e.currentTarget.dataset.id;
-    const modifiedStickyNotes = [...allStickyNotes];
-    const reqIndex = modifiedStickyNotes.findIndex(
-      (item) => item.id === noteId
-    );
-    modifiedStickyNotes.splice(reqIndex, 1);
-    saveToLocalStorage("stickyNotes", modifiedStickyNotes);
-    setAllStickyNotes(modifiedStickyNotes);
+    deleteStickyNote(noteId,saveStickyNotes)
   };
 
   const editStickyNote = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     const noteId = e.target.dataset.id;
     const currentNote = allStickyNotes.find((note) => note.id === noteId);
     if (!currentNote) return;
     setFocusedNote({
       newNote: false,
       id: currentNote.id,
-      value: currentNote.value,
+      stickyNoteContent: currentNote.stickyNoteContent,
       posX: currentNote.posX,
       posY: currentNote.posY,
     });
@@ -118,11 +115,10 @@ const StickyNotes = () => {
   };
 
   const updateNotePosition = (id, newX, newY) => {
-    const newStickyNotes = allStickyNotes.map((note) =>
-      note.id === id ? { ...note, posX: newX, posY: newY } : { ...note }
-    );
-    setAllStickyNotes(newStickyNotes);
-    saveToLocalStorage("stickyNotes", newStickyNotes);
+    let updatedStickyNote = allStickyNotes.find((note) =>
+      note.id === id )
+    updatedStickyNote={...updatedStickyNote,posX:newX,posY:newY}
+   updateStickyNote(id,updatedStickyNote,saveStickyNotes)
   };
 
   return (
@@ -130,13 +126,13 @@ const StickyNotes = () => {
       <AddUpdate
         newNote={focusedNote.newNote}
         noteId={focusedNote.id}
-        noteValue={focusedNote.value}
+        noteValue={focusedNote.stickyNoteContent}
         posX={focusedNote.posX}
         posY={focusedNote.posY}
         modifyStickyNotesList={modifyStickyNotesList}
       />
       <div className="allNotes">
-        {allStickyNotes.map((note) => (
+        {allStickyNotes?.map((note) => (
           <IndividualNote
             onMouseDown={(e) => handleMouseDown(note, e)}
             ref={
@@ -149,7 +145,7 @@ const StickyNotes = () => {
             className="individualStickyNote"
             key={note.id}
           >
-            📌<span>{note.value}</span>
+            📌<span>{note.stickyNoteContent}</span>
             <button data-id={note.id} onClick={editStickyNote}>
               /
             </button>
