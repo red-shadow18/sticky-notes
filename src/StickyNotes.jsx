@@ -1,13 +1,14 @@
 import React, { createRef, useEffect, useRef, useState } from "react";
 import styled from "@emotion/styled";
 import AddUpdate from "./Components/AddUpdate";
-import { getFromLocalStorage, saveToLocalStorage } from "./utils";
 import {deleteStickyNote, getAllStickyNotes, saveStickyNote, updateStickyNote} from "./apiUtils/apicalls"
 
-const maxX = window.innerWidth - 250;
-const maxY = window.innerHeight - 250;
+
 const StickyNotes = () => {
   const [allStickyNotes, setAllStickyNotes] = useState([]);
+  const [screenDimensions, setScreenDimensions]=useState({maxX:null, maxY:null})
+  const[inPlaceEditText, setInplaceEditText]=useState("")
+  const stickyNoteContainerRef=useRef(null)
   const [focusedNote, setFocusedNote] = useState({
     id: null,
     stickyNoteContent: "",
@@ -18,7 +19,31 @@ const StickyNotes = () => {
 
   useEffect(() => {
     getAllStickyNotes(saveStickyNotes)
+
   }, []);
+
+
+  //handling window resize
+  useEffect(()=>{
+    const updateScreenDimensions=()=>{
+      if(stickyNoteContainerRef.current){
+    
+        const maxX = stickyNoteContainerRef.current.clientWidth - 250;
+  const maxY = stickyNoteContainerRef.current.clientHeight - 250;
+  setScreenDimensions({maxX:maxX,maxY:maxY})
+      }
+    }
+
+    updateScreenDimensions()
+    window.addEventListener("resize",updateScreenDimensions)
+
+
+    return ()=>{
+      window.removeEventListener("resize",updateScreenDimensions)
+    }
+
+
+  },[])
 
   const saveStickyNotes=(stickyNotes)=>{
     setAllStickyNotes(stickyNotes);
@@ -29,8 +54,8 @@ const StickyNotes = () => {
   const modifyStickyNotesList = (newNote, noteId, noteContent, posX, posY) => {
     const newNoteContents = {
       stickyNoteContent: noteContent,
-      posX: posX || Math.floor(Math.random() * maxX),
-      posY: posY || Math.floor(Math.random() * maxY),
+      posX: posX || Math.floor(Math.random() * screenDimensions.maxX),
+      posY: posY || Math.floor(Math.random() * screenDimensions.maxY),
     };
     if (newNote) {
         saveStickyNote(newNoteContents, saveStickyNotes);
@@ -51,6 +76,7 @@ const StickyNotes = () => {
   };
 
   const editStickyNote = (e) => {
+
     e.preventDefault();
     e.stopPropagation();
     const noteId = e.target.dataset.id;
@@ -63,40 +89,54 @@ const StickyNotes = () => {
       posX: currentNote.posX,
       posY: currentNote.posY,
     });
+    setInplaceEditText(currentNote.stickyNoteContent)
   };
 
   const handleMouseDown = (note, e) => {
-    const { id, posX, posY } = note;
+    e.preventDefault()
+    const { id, posX,posY} = note;
     const currentNoteRef = stickyNotesRef.current[id].current;
 
     //determinig current posaiton of the note wrt to the viewport
     const rect = currentNoteRef.getBoundingClientRect();
     //determing cuurent mouse position
-    const mousePos = { x: e.clientX, y: e.clientY };
 
+
+   const offsetX= e.clientX-posX;
+   const offsetY=e.clientY-posY;
     //calculating distance bw mose position and notes left corner
-    const offset = {
-      x: mousePos.x - rect.left,
-      y: mousePos.y - rect.top,
-    };
+    // const offset = {
+    //   x: mousePos.x - rect.left,
+    //   y: mousePos.y - rect.top,
+    // };
 
     const parentRect = currentNoteRef.parentElement.getBoundingClientRect();
 
     const handleMouseMove = (e) => {
+
       let newX = Math.max(
         0,
-        Math.min(e.clientX - offset.x, parentRect.width - rect.width - 10)
+        Math.min(e.clientX-offsetX, parentRect.width - rect.width - 10)
       );
       let newY = Math.max(
         0,
-        Math.min(e.clientY - offset.y, parentRect.height - rect.height - 10)
+        Math.min(e.clientY-offsetY, parentRect.height - rect.height - 10)
       );
+
+      // let newX=e.clientX-offsetX
+      // let newY=e.clientY-offsetY
 
       currentNoteRef.style.left = `${newX}px`;
       currentNoteRef.style.top = `${newY}px`;
+      // currentNoteRef.style.transform = `translate(${newX}px, ${newY}px)`;
     };
 
     const handleMouseUp = (e) => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+
+      // let finalX=e.clientX-offsetX
+      // let finalY=e.clientY-offsetY
       let finalX = Math.max(
         0,
         Math.min(e.clientX - offset.x, parentRect.width - rect.width - 10)
@@ -105,8 +145,7 @@ const StickyNotes = () => {
         0,
         Math.min(e.clientY - offset.y, parentRect.height - rect.height - 10)
       );
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
+
       updateNotePosition(id, finalX, finalY);
     };
 
@@ -131,28 +170,46 @@ const StickyNotes = () => {
         posY={focusedNote.posY}
         modifyStickyNotesList={modifyStickyNotesList}
       />
-      <div className="allNotes">
+      <div className="allNotes" ref={stickyNoteContainerRef}>
         {allStickyNotes?.map((note) => (
-          <IndividualNote
-            onMouseDown={(e) => handleMouseDown(note, e)}
-            ref={
-              stickyNotesRef.current[note.id]
-                ? stickyNotesRef.current[note.id]
-                : (stickyNotesRef.current[note.id] = createRef())
-            }
-            posX={note.posX}
-            posY={note.posY}
-            className="individualStickyNote"
-            key={note.id}
-          >
-            📌<span>{note.stickyNoteContent}</span>
+          <StickyNoteContainer             key={note.id}     ref={
+            stickyNotesRef.current[note.id]
+              ? stickyNotesRef.current[note.id]
+              : (stickyNotesRef.current[note.id] = createRef())
+          }  onMouseDown={(e) => handleMouseDown(note, e)}      posX={note.posX}
+          posY={note.posY}>
+            <div>
             <button data-id={note.id} onClick={editStickyNote}>
               /
             </button>
             <button data-id={note.id} onClick={removeStickyNote}>
               X
             </button>
-          </IndividualNote>
+            </div>
+    { focusedNote.id===note.id?<input autoFocus value={inPlaceEditText}
+    onKeyDown={(e)=>{
+      if(e.key==="Enter"){
+        modifyStickyNotesList(false, note.id,inPlaceEditText,note.posX,note.posY )
+      }
+    }}
+    onBlur={()=>{
+      modifyStickyNotesList(false, note.id,inPlaceEditText,note.posX,note.posY )
+    }}
+    onChange={(e)=>{
+      setInplaceEditText(e.target.value)
+    }}/>: <IndividualNote
+            
+       
+     
+            className="individualStickyNote"
+
+          >
+            📌<span>{note.stickyNoteContent}</span>
+
+          </IndividualNote>}
+
+          </StickyNoteContainer>
+    
         ))}
       </div>
     </Container>
@@ -179,6 +236,21 @@ const Container = styled.div`
   }
 `;
 
+const StickyNoteContainer=styled.div`
+    position: absolute;
+  left: ${(props) => props.posX}px;
+  top: ${(props) => props.posY}px;
+  margin: 5px;
+  padding: 5px;
+  border: 0.5px solid black;
+  cursor: move;
+  background-color: lightyellow;
+  
+  button{
+    background-color: transparent;
+  }
+`
+
 const IndividualNote = styled.div`
   margin: 5px;
   padding: 5px;
@@ -190,12 +262,9 @@ const IndividualNote = styled.div`
   overflow: auto;
   display: flex;
   gap: 5px;
-  user-select: none;
-  cursor: move;
-  background-color: lightyellow;
-  position: absolute;
-  left: ${(props) => props.posX}px;
-  top: ${(props) => props.posY}px;
+ // user-select: none;
+ 
+
 
   button {
     padding: 5px;
