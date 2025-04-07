@@ -139,11 +139,11 @@ const StickyNotes = () => {
       // let finalY=e.clientY-offsetY
       let finalX = Math.max(
         0,
-        Math.min(e.clientX - offset.x, parentRect.width - rect.width - 10)
+        Math.min(e.clientX - offsetX, parentRect.width - rect.width - 10)
       );
       let finalY = Math.max(
         0,
-        Math.min(e.clientY - offset.y, parentRect.height - rect.height - 10)
+        Math.min(e.clientY - offsetY, parentRect.height - rect.height - 10)
       );
 
       updateNotePosition(id, finalX, finalY);
@@ -152,6 +152,48 @@ const StickyNotes = () => {
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
   };
+
+  const handleTouchStart=(note,e)=>{
+    e.preventDefault()
+    const touch=e.touches[0]
+    const {id,posX,posY}=note
+    const currentNoteRef=stickyNotesRef.current[id].current;
+
+    const rect=currentNoteRef.getBoundingClientRect()
+    const offsetX=touch.clientX-posX
+    const offsetY=touch.clientY-posY
+
+    const parentRect=currentNoteRef.parentElement.getBoundingClientRect()
+
+
+
+    const handleTouchMove=(e)=>{
+      const touch=e.touches[0]
+      let newX=Math.max(0, Math.min(touch.clientX-offsetX, parentRect.width-rect.width-10))
+      let newY=Math.max(0, Math.min(touch.clientY-offsetY, parentRect.height-rect.height-10))
+
+          currentNoteRef.style.left=`${newX}px`
+    currentNoteRef.style.top=`${newY}px`
+    }
+
+    const handleTouchEnd=(e)=>{
+      const touch=e.touches[0]
+      document.removeEventListener("touchmove",handleTouchMove)
+      document.removeEventListener("touchend",handleTouchEnd)
+
+      let newX=Math.max(0, Math.min(touch.clientX-offsetX, parentRect.width-rect.width-10))
+      let newY=Math.max(0, Math.min(touch.clientY-offsetY, parentRect.height-rect.height-10))
+
+          currentNoteRef.style.left=`${newX}px`
+    currentNoteRef.style.top=`${newY}px`
+
+    updateNotePosition(id, newX, newY);
+    }
+
+    document.addEventListener("touchmove",handleTouchMove)
+    document.addEventListener("touchend",handleTouchEnd)
+
+  }
 
   const updateNotePosition = (id, newX, newY) => {
     let updatedStickyNote = allStickyNotes.find((note) =>
@@ -176,7 +218,9 @@ const StickyNotes = () => {
             stickyNotesRef.current[note.id]
               ? stickyNotesRef.current[note.id]
               : (stickyNotesRef.current[note.id] = createRef())
-          }  onMouseDown={(e) => handleMouseDown(note, e)}      posX={note.posX}
+          } 
+          onTouchStart={(e)=>handleTouchStart(note,e)}
+          onMouseDown={(e) => handleMouseDown(note, e)}      posX={note.posX}
           posY={note.posY}>
             <div>
             <button data-id={note.id} onClick={editStickyNote}>
